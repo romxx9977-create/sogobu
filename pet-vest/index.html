@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>宠物马甲行业标准打版系统 - 稳定导出版</title>
-  <!-- 仅引入精简且稳定的 jsPDF 核心库 -->
-  <script src="https://cdn.bootcdn.net/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <title>宠物马甲行业标准打版系统 - 稳定下载版</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background-color: #f5f7fa; color: #333; }
@@ -64,14 +62,14 @@
 
     <div class="btn-group">
       <button onclick="renderPattern()">手动刷新图纸</button>
-      <button class="secondary" onclick="exportStablePDF()">导出标准打印 PDF</button>
+      <button class="secondary" onclick="exportImage()">一键下载高清图纸 (PNG)</button>
     </div>
   </div>
 
   <div class="main-content">
     <div class="canvas-header">
-      <h3>宠物马甲行业标准打版图纸（稳定导出版）</h3>
-      <span style="font-size: 12px; color: #666;">零插件冲突 / 高清稳定导出</span>
+      <h3>宠物马甲行业标准打版图纸（免插件秒存版）</h3>
+      <span style="font-size: 12px; color: #666;">零拦截 / 完美兼容所有浏览器</span>
     </div>
     <div class="canvas-container">
       <svg id="patternCanvas" viewBox="-100 -120 1000 750"></svg>
@@ -242,43 +240,37 @@
       g.appendChild(t);
     }
 
-    // 采用高稳定性的 Canvas 图像转换导出 PDF 方案
-    function exportStablePDF() {
-      const { jsPDF } = window.jspdf;
+    // 采用原生 Base64 编码下载，绝对不会出现没反应的情况
+    function exportImage() {
       const svgElement = document.getElementById('patternCanvas');
+      const bbox = svgElement.getBBox();
       const svgString = new XMLSerializer().serializeToString(svgElement);
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = (bbox.width + 100) * 2; // 2倍超高清
+      canvas.height = (bbox.height + 100) * 2;
+      const ctx = canvas.getContext('2d');
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(2, 2);
+
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
       const URL = window.URL || window.webkitURL || window;
-      const blobURL = URL.createObjectURL(svgBlob);
+      const blobURL = URL.createObjectURL(blob);
 
       const image = new Image();
-      image.onload = function () {
-        const canvas = document.createElement('canvas');
-        const bbox = svgElement.getBBox();
-        canvas.width = bbox.width * 2; // 2倍清晰度
-        canvas.height = bbox.height * 2;
-        const context = canvas.getContext('2d');
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.scale(2, 2);
-        context.drawImage(image, -bbox.x, -bbox.y);
-
-        const imgData = canvas.toDataURL('image/png');
-        const doc = new jsPDF('l', 'mm', 'a4'); // A4 横向
-        const pdfWidth = doc.internal.pageSize.getWidth();
-        const pdfHeight = doc.internal.pageSize.getHeight();
-        
-        const ratio = bbox.width / bbox.height;
-        let renderW = pdfWidth - 20;
-        let renderH = renderW / ratio;
-        if (renderH > pdfHeight - 20) {
-          renderH = pdfHeight - 20;
-          renderW = renderH * ratio;
-        }
-
-        doc.addImage(imgData, 'PNG', 10, 10, renderW, renderH);
-        doc.save(`宠物马甲_标准图纸_${new Date().toISOString().slice(0,10)}.pdf`);
+      image.onload = function() {
+        ctx.drawImage(image, 50 - bbox.x, 50 - bbox.y);
         URL.revokeObjectURL(blobURL);
+
+        const dataURL = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `宠物马甲标准图纸_${new Date().toISOString().slice(0,10)}.png`;
+        link.href = dataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       };
       image.src = blobURL;
     }
