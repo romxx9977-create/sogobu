@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>宠物马甲行业标准打版系统 - 结构优化版</title>
-  <!-- 使用国内稳定 CDN 确保 PDF 导出功能正常 -->
+  <title>宠物马甲行业标准打版系统 - 稳定导出版</title>
+  <!-- 仅引入精简且稳定的 jsPDF 核心库 -->
   <script src="https://cdn.bootcdn.net/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdn.bootcdn.net/ajax/libs/svg2pdf.js/2.2.3/svg2pdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background-color: #f5f7fa; color: #333; }
@@ -53,9 +52,7 @@
     </div>
 
     <h2>2. 实时计算数据看板</h2>
-    <div class="data-card" id="dataBoard">
-      <!-- 动态填充计算数据 -->
-    </div>
+    <div class="data-card" id="dataBoard"></div>
 
     <h2>3. 缝合对照与图例</h2>
     <div class="legend-box">
@@ -67,14 +64,14 @@
 
     <div class="btn-group">
       <button onclick="renderPattern()">手动刷新图纸</button>
-      <button class="secondary" onclick="exportTiledPDF()">导出 A4 拼纸打印 PDF</button>
+      <button class="secondary" onclick="exportStablePDF()">导出标准打印 PDF</button>
     </div>
   </div>
 
   <div class="main-content">
     <div class="canvas-header">
-      <h3>宠物马甲行业标准打版图纸（防重叠排版版）</h3>
-      <span style="font-size: 12px; color: #666;">标注外置 / 结构清晰 / 拒绝重叠</span>
+      <h3>宠物马甲行业标准打版图纸（稳定导出版）</h3>
+      <span style="font-size: 12px; color: #666;">零插件冲突 / 高清稳定导出</span>
     </div>
     <div class="canvas-container">
       <svg id="patternCanvas" viewBox="-100 -120 1000 750"></svg>
@@ -82,7 +79,7 @@
   </div>
 
   <script>
-    const SCALE = 12; // 放大比例，1cm = 12px
+    const SCALE = 12;
 
     function renderPattern() {
       const N = parseFloat(document.getElementById('neck').value) || 0;
@@ -100,7 +97,6 @@
       const L_front = L * 0.65;
       const sideSeamLen = L_front - armDepth;
 
-      // 更新侧边栏数据看板
       document.getElementById('dataBoard').innerHTML = `
         • 总胸围 (C+Ease)：<b>${C_total.toFixed(1)} cm</b><br>
         • 后胸宽 / 前胸宽：<b>${W_back.toFixed(1)} cm</b> / <b>${W_front.toFixed(1)} cm</b><br>
@@ -112,7 +108,6 @@
       const svg = document.getElementById('patternCanvas');
       svg.innerHTML = '';
 
-      // 左右两片错开布局，拉开安全间距防止图形或文字交叉
       const backGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
       backGroup.setAttribute("transform", "translate(80, 80)");
       
@@ -151,30 +146,23 @@
       const pL = L * SCALE;
       const pSideBottomY = sideBottomY * SCALE;
 
-      // 标题（放置在上方安全区）
       addText(group, 0, -45, "【1. 后背片】(对折剪裁 1 片)", "#2c3e50", 14, 0);
-
-      // 1. 后中线 (红色)
       addLine(group, 0, 0, 0, pL, "#e74c3c", 2.5);
       addText(group, -85, pL / 2, `后中线: ${L.toFixed(1)}cm`, "#e74c3c", 11, -90);
       addDot(group, 0, 0, "P1", "#e74c3c");
 
-      // 2. 后领口弧线 (蓝色)
       addCurve(group, `M 0 0 Q ${pNeckW * 0.5} 0 ${pNeckW} ${-pNeckD}`, "#3498db", 2.5);
       addText(group, pNeckW / 2, -pNeckD - 15, `领宽: ${neckW.toFixed(1)}cm [A]`, "#3498db", 11, 0);
       addDot(group, pNeckW, -pNeckD, "P2 [A]", "#3498db");
 
-      // 3. 肩线与后袖窿 (紫色)
       addLine(group, pNeckW, -pNeckD, pShoulderX, pShoulderY, "#9b59b6", 2.5);
       addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 10} ${pArmDepth * 0.5}, ${pW * 0.7} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2.5);
       addText(group, pW + 15, pArmDepth * 0.6, `袖窿深: ${armDepth.toFixed(1)}cm [B]`, "#9b59b6", 11, 0);
       addDot(group, pW, pArmDepth, "P3 [B]", "#9b59b6");
 
-      // 4. 侧缝线 (绿色)
       addLine(group, pW, pArmDepth, pW, pSideBottomY, "#27ae60", 2.5);
       addText(group, pW + 15, (pArmDepth + pSideBottomY) / 2, `侧缝长: ${sideSeamLen.toFixed(1)}cm [C]`, "#27ae60", 11, 90);
 
-      // 5. 后底边
       addCurve(group, `M ${pW} ${pSideBottomY} Q ${pW * 0.5} ${pL + 15} 0 ${pL}`, "#27ae60", 2.5);
       addText(group, pW / 2, pL + 25, `后胸宽: ${W.toFixed(1)}cm [D]`, "#27ae60", 11, 0);
     }
@@ -197,29 +185,22 @@
       const pShoulderY = (-neckD * 0.3 + shoulderSlope) * SCALE;
       const pL_front = L_front * SCALE;
 
-      // 标题
       addText(group, 0, -45, "【2. 腹部前片】(左右各剪 1 片)", "#2c3e50", 14, 0);
-
-      // 1. 前中线 (红色)
       addLine(group, 0, 0, 0, pL_front, "#e74c3c", 2.5);
       addText(group, -85, pL_front / 2, `前身长: ${L_front.toFixed(1)}cm`, "#e74c3c", 11, -90);
       addDot(group, 0, 0, "F1", "#e74c3c");
 
-      // 2. 前领窝 (蓝色)
       addCurve(group, `M 0 0 Q ${pNeckW * 0.3} ${pNeckD} ${pNeckW} ${-pNeckD * 0.3}`, "#3498db", 2.5);
       addText(group, pNeckW + 12, -pNeckD * 0.3, `前领深: ${neckD.toFixed(1)}cm [A]`, "#3498db", 11, 0);
       addDot(group, pNeckW, -pNeckD * 0.3, "F2 [A]", "#3498db");
 
-      // 3. 前肩线与袖窿 (紫色)
       addLine(group, pNeckW, -pNeckD * 0.3, pShoulderX, pShoulderY, "#9b59b6", 2.5);
       addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 10} ${pArmDepth * 0.6}, ${pW * 0.8} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2.5);
       addDot(group, pW, pArmDepth, "F3 [B]", "#9b59b6");
 
-      // 4. 侧缝线 (绿色)
       addLine(group, pW, pArmDepth, pW, pL_front, "#27ae60", 2.5);
       addText(group, pW + 15, (pArmDepth + pL_front) / 2, `侧缝长: ${sideSeamLen.toFixed(1)}cm [C]`, "#27ae60", 11, 90);
 
-      // 5. 前底边
       addLine(group, pW, pL_front, 0, pL_front, "#27ae60", 2.5);
       addText(group, pW / 2, pL_front + 25, `前胸宽: ${W.toFixed(1)}cm [D]`, "#27ae60", 11, 0);
     }
@@ -261,31 +242,45 @@
       g.appendChild(t);
     }
 
-    async function exportTiledPDF() {
+    // 采用高稳定性的 Canvas 图像转换导出 PDF 方案
+    function exportStablePDF() {
       const { jsPDF } = window.jspdf;
-      const svg = document.getElementById('patternCanvas');
-      const bbox = svg.getBBox();
-      const A4_W = 210, A4_H = 297, margin = 12;
-      const printW = A4_W - 2 * margin, printH = A4_H - 2 * margin;
-      const cols = Math.ceil(bbox.width / printW), rows = Math.ceil(bbox.height / printH);
-      const doc = new jsPDF('p', 'mm', 'a4');
-      const cloneSvg = svg.cloneNode(true);
-      cloneSvg.setAttribute("width", bbox.width); cloneSvg.setAttribute("height", bbox.height);
-      cloneSvg.setAttribute("viewBox", `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+      const svgElement = document.getElementById('patternCanvas');
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
 
-      let pageNum = 1;
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (pageNum > 1) doc.addPage();
-          await doc.svg(cloneSvg, { x: margin - (c * printW), y: margin - (r * printH), width: bbox.width, height: bbox.height });
-          doc.setDrawColor(231, 76, 60); doc.setLineWidth(0.3);
-          doc.rect(margin, margin, printW, printH);
-          doc.setFontSize(10); doc.setTextColor(231, 76, 60);
-          doc.text(`标准打版纸样 A4 拼图 - 行 ${r+1} / 列 ${c+1}`, margin + 5, margin + 5);
-          pageNum++;
+      const image = new Image();
+      image.onload = function () {
+        const canvas = document.createElement('canvas');
+        const bbox = svgElement.getBBox();
+        canvas.width = bbox.width * 2; // 2倍清晰度
+        canvas.height = bbox.height * 2;
+        const context = canvas.getContext('2d');
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.scale(2, 2);
+        context.drawImage(image, -bbox.x, -bbox.y);
+
+        const imgData = canvas.toDataURL('image/png');
+        const doc = new jsPDF('l', 'mm', 'a4'); // A4 横向
+        const pdfWidth = doc.internal.pageSize.getWidth();
+        const pdfHeight = doc.internal.pageSize.getHeight();
+        
+        const ratio = bbox.width / bbox.height;
+        let renderW = pdfWidth - 20;
+        let renderH = renderW / ratio;
+        if (renderH > pdfHeight - 20) {
+          renderH = pdfHeight - 20;
+          renderW = renderH * ratio;
         }
-      }
-      doc.save(`宠物马甲_标准图纸_${new Date().toISOString().slice(0,10)}.pdf`);
+
+        doc.addImage(imgData, 'PNG', 10, 10, renderW, renderH);
+        doc.save(`宠物马甲_标准图纸_${new Date().toISOString().slice(0,10)}.pdf`);
+        URL.revokeObjectURL(blobURL);
+      };
+      image.src = blobURL;
     }
 
     window.onload = renderPattern;
