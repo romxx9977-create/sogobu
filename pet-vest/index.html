@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>宠物马甲参数化打版系统 - 行业标准公式版</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/svg2pdf.js/2.2.3/svg2pdf.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background-color: #f5f7fa; color: #333; }
+    .sidebar { width: 380px; background: #ffffff; padding: 20px; border-right: 1px solid #e1e4e8; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; box-shadow: 2px 0 8px rgba(0,0,0,0.05); }
+    .sidebar h2 { font-size: 16px; color: #1a1a1a; border-bottom: 2px solid #2980b9; padding-bottom: 6px; margin-bottom: 4px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: #444; }
+    .form-group input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; outline: none; }
+    .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+    button { padding: 10px; border: none; border-radius: 6px; background-color: #2980b9; color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    button:hover { background-color: #1f618d; }
+    button.secondary { background-color: #e67e22; }
+    button.secondary:hover { background-color: #d35400; }
+    .main-content { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 12px; }
+    .canvas-header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .canvas-container { flex: 1; background: white; border-radius: 8px; border: 1px solid #e1e4e8; overflow: auto; position: relative; display: flex; justify-content: center; align-items: center; }
+    svg { width: 100%; height: 100%; background-image: radial-gradient(#d0d0d0 1px, transparent 1px); background-size: 20px 20px; }
+    
+    .legend-box { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #ddd; }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-color { width: 12px; height: 12px; border-radius: 2px; }
+    .seam-guide { font-size: 11px; background: #eef9ff; padding: 8px; border-radius: 6px; border: 1px solid #bce8f1; color: #31708f; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>1. 输入宠物量体尺寸 (厘米)</h2>
+    <div class="form-group">
+      <label for="neck">颈围 N (Neck)</label>
+      <input type="number" id="neck" value="24" step="0.5">
+    </div>
+    <div class="form-group">
+      <label for="chest">净胸围 C (Chest)</label>
+      <input type="number" id="chest" value="36" step="0.5">
+    </div>
+    <div class="form-group">
+      <label for="back">背长 L (Back Length)</label>
+      <input type="number" id="back" value="28" step="0.5">
+    </div>
+    <div class="form-group">
+      <label for="ease">放松量 Ease (推荐 3~4cm)</label>
+      <input type="number" id="ease" value="4" step="0.5">
+    </div>
+
+    <h2>2. 图例与对位缝合指南</h2>
+    <div class="legend-box">
+      <div class="legend-item"><div class="legend-color" style="background:#e74c3c;"></div><span>后中/前中线 (红)</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#3498db;"></div><span>领口弧线 (蓝) [A↔A]</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#9b59b6;"></div><span>袖窿弧线 (紫) [B↔B]</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#27ae60;"></div><span>侧缝与底边 (绿) [C↔C / D↔D]</span></div>
+    </div>
+
+    <div class="seam-guide">
+      <b>💡 拼接指南（等长结构保证准确）：</b><br>
+      • <b>A ↔ A</b>：肩缝缝合（前后肩线等长）<br>
+      • <b>B ↔ B</b>：袖窿包边/贴边<br>
+      • <b>C ↔ C</b>：侧缝车缝（前后侧缝已精准对齐）<br>
+      • <b>D ↔ D</b>：下摆包边
+    </div>
+
+    <div class="btn-group">
+      <button onclick="renderPattern()">重新生成标准图纸</button>
+      <button class="secondary" onclick="exportTiledPDF()">导出 A4 拼纸打印 PDF</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="canvas-header">
+      <h3>宠物马甲行业标准打版图纸（全新公式版）</h3>
+      <span style="font-size: 12px; color: #666;">高清标注 / 单位 cm / 前后侧缝 100% 对齐</span>
+    </div>
+    <div class="canvas-container">
+      <svg id="patternCanvas" viewBox="-120 -120 950 700"></svg>
+    </div>
+  </div>
+
+  <script>
+    const SCALE = 12; // 放大比例，1cm = 12px
+
+    function renderPattern() {
+      const N = parseFloat(document.getElementById('neck').value);
+      const C = parseFloat(document.getElementById('chest').value);
+      const L = parseFloat(document.getElementById('back').value);
+      const Ease = parseFloat(document.getElementById('ease').value);
+
+      const C_total = C + Ease; // 总胸围
+
+      const svg = document.getElementById('patternCanvas');
+      svg.innerHTML = '';
+
+      const backGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      backGroup.setAttribute("transform", "translate(60, 60)");
+      
+      const frontGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      frontGroup.setAttribute("transform", `translate(${ (C_total/2)*0.6*SCALE + 180 }, 60)`);
+
+      svg.appendChild(backGroup);
+      svg.appendChild(frontGroup);
+
+      drawStandardBack(backGroup, N, C, L, C_total);
+      drawStandardFront(frontGroup, N, C, L, C_total);
+
+      setTimeout(() => {
+         const bbox = svg.getBBox();
+         svg.setAttribute("viewBox", `${bbox.x - 60} ${bbox.y - 60} ${bbox.width + 120} ${bbox.height + 120}`);
+      }, 50);
+    }
+
+    function drawStandardBack(group, N, C, L, C_total) {
+      // 核心计算参数（cm）
+      const W = (C_total / 2) * 0.6;          // 后胸宽
+      const neckW = N / 5;                     // 后领宽
+      const neckD = 2.0;                       // 后领深
+      const armDepth = (C / 6) + 3.0;          // 袖窿深
+      const shoulderLen = 2.5;                 // 肩宽
+      const shoulderSlope = 1.2;               // 肩斜Drop
+      const L_front = L * 0.65;                // 前衣长
+      const sideSeamLen = L_front - armDepth;  // 侧缝等长计算
+      const sideBottomY = armDepth + sideSeamLen;
+
+      // 缩放为像素
+      const pW = W * SCALE;
+      const pNeckW = neckW * SCALE;
+      const pNeckD = neckD * SCALE;
+      const pArmDepth = armDepth * SCALE;
+      const pShoulderX = (neckW + shoulderLen) * SCALE;
+      const pShoulderY = (-neckD + shoulderSlope) * SCALE;
+      const pL = L * SCALE;
+      const pSideBottomY = sideBottomY * SCALE;
+
+      // 1. 后中线 (红色)
+      addLine(group, 0, 0, 0, pL, "#e74c3c", 2.5);
+      addText(group, -95, pL / 2, `后中线 = ${L.toFixed(1)} cm`, "#e74c3c", 12, -90);
+      addDot(group, 0, 0, "P1: 后颈点", "#e74c3c");
+
+      // 2. 后领口弧线 (蓝色)
+      addCurve(group, `M 0 0 Q ${pNeckW * 0.5} 0 ${pNeckW} ${-pNeckD}`, "#3498db", 2.5);
+      addText(group, pNeckW / 2, -pNeckD - 12, `后领宽 = ${neckW.toFixed(1)} cm [A]`, "#3498db", 12);
+      addDot(group, pNeckW, -pNeckD, "P2: 肩颈点 [A]", "#3498db");
+
+      // 3. 肩线与后袖窿 (紫色)
+      // 肩线
+      addLine(group, pNeckW, -pNeckD, pShoulderX, pShoulderY, "#9b59b6", 2.5);
+      // 袖窿曲线
+      addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 10} ${pArmDepth * 0.5}, ${pW * 0.7} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2.5);
+      addText(group, pW * 0.4, pArmDepth - 10, `袖窿深 = ${armDepth.toFixed(1)} cm [B]`, "#9b59b6", 12);
+      addDot(group, pW, pArmDepth, "P3: 腋下点 [B]", "#9b59b6");
+
+      // 4. 侧缝线 (绿色 - 与前片精准等长)
+      addLine(group, pW, pArmDepth, pW, pSideBottomY, "#27ae60", 2.5);
+      addText(group, pW + 18, (pArmDepth + pSideBottomY) / 2, `侧缝长 = ${sideSeamLen.toFixed(1)} cm [C]`, "#27ae60", 12, 90);
+
+      // 5. 后底边圆弧线
+      addCurve(group, `M ${pW} ${pSideBottomY} Q ${pW * 0.5} ${pL + 15} 0 ${pL}`, "#27ae60", 2.5);
+      addText(group, pW / 2, pL + 25, `后胸宽 = ${W.toFixed(1)} cm [D]`, "#27ae60", 12);
+
+      // 标题
+      addText(group, 10, -pNeckD - 40, "【1. 后背片】(对折剪裁 1 片)", "#2c3e50", 14);
+    }
+
+    function drawStandardFront(group, N, C, L, C_total) {
+      // 核心计算参数（cm）
+      const W = (C_total / 2) * 0.4;          // 前胸宽
+      const neckW = N / 5;                     // 前领宽
+      const neckD = (N / 5) + 1.5;             // 前领深
+      const armDepth = (C / 6) + 3.0;          // 袖窿深
+      const shoulderLen = 2.5;                 // 肩宽
+      const shoulderSlope = 1.2;               // 肩斜 Drop
+      const L_front = L * 0.65;                // 前衣长
+      const sideSeamLen = L_front - armDepth;  // 侧缝等长
+
+      // 缩放为像素
+      const pW = W * SCALE;
+      const pNeckW = neckW * SCALE;
+      const pNeckD = neckD * SCALE;
+      const pArmDepth = armDepth * SCALE;
+      const pShoulderX = (neckW + shoulderLen) * SCALE;
+      const pShoulderY = (-neckD * 0.3 + shoulderSlope) * SCALE;
+      const pL_front = L_front * SCALE;
+
+      // 1. 前中线 (红色)
+      addLine(group, 0, 0, 0, pL_front, "#e74c3c", 2.5);
+      addText(group, -95, pL_front / 2, `前身长 = ${L_front.toFixed(1)} cm`, "#e74c3c", 12, -90);
+      addDot(group, 0, 0, "F1: 前颈点", "#e74c3c");
+
+      // 2. 前领窝 (蓝色)
+      addCurve(group, `M 0 0 Q ${pNeckW * 0.3} ${pNeckD} ${pNeckW} ${-pNeckD * 0.3}`, "#3498db", 2.5);
+      addText(group, pNeckW / 2, pNeckD * 0.4, `前领深 = ${neckD.toFixed(1)} cm [A]`, "#3498db", 12);
+      addDot(group, pNeckW, -pNeckD * 0.3, "F2: 前肩点 [A]", "#3498db");
+
+      // 3. 前肩线与袖窿 (紫色)
+      addLine(group, pNeckW, -pNeckD * 0.3, pShoulderX, pShoulderY, "#9b59b6", 2.5);
+      addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 10} ${pArmDepth * 0.6}, ${pW * 0.8} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2.5);
+      addDot(group, pW, pArmDepth, "F3: 腋下点 [B]", "#9b59b6");
+
+      // 4. 侧缝线 (绿色 - 与后片精准对应)
+      addLine(group, pW, pArmDepth, pW, pL_front, "#27ae60", 2.5);
+      addText(group, pW + 18, (pArmDepth + pL_front) / 2, `侧缝长 = ${sideSeamLen.toFixed(1)} cm [C]`, "#27ae60", 12, 90);
+
+      // 5. 前底边
+      addLine(group, pW, pL_front, 0, pL_front, "#27ae60", 2.5);
+      addText(group, pW / 2, pL_front + 22, `前胸宽 = ${W.toFixed(1)} cm [D]`, "#27ae60", 12);
+
+      // 标题
+      addText(group, 10, -pNeckD - 20, "【2. 腹部前片】(左右各剪 1 片)", "#2c3e50", 14);
+    }
+
+    // 辅助绘图函数
+    function addLine(g, x1, y1, x2, y2, color, width) {
+      const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+      l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+      l.setAttribute("style", `stroke: ${color}; stroke-width: ${width}; stroke-linecap: round;`);
+      g.appendChild(l);
+    }
+
+    function addCurve(g, d, color, width) {
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      p.setAttribute("d", d);
+      p.setAttribute("style", `stroke: ${color}; stroke-width: ${width}; fill: none; stroke-linecap: round;`);
+      g.appendChild(p);
+    }
+
+    function addDot(g, cx, cy, label, color) {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", "4.5");
+      c.setAttribute("style", `fill: ${color}; stroke: #fff; stroke-width: 1.5;`);
+      g.appendChild(c);
+      
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", cx + 7); t.setAttribute("y", cy + 4);
+      t.setAttribute("style", `font-size: 11px; fill: #111; font-weight: bold;`);
+      t.textContent = label;
+      g.appendChild(t);
+    }
+
+    function addText(g, x, y, textContent, color, size, rotate=0) {
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", x); t.setAttribute("y", y);
+      t.setAttribute("style", `font-size: ${size}px; fill: ${color}; font-weight: bold;`);
+      if (rotate) t.setAttribute("transform", `rotate(${rotate}, ${x}, ${y})`);
+      t.textContent = textContent;
+      g.appendChild(t);
+    }
+
+    async function exportTiledPDF() {
+      const { jsPDF } = window.jspdf;
+      const svg = document.getElementById('patternCanvas');
+      const bbox = svg.getBBox();
+      const A4_W = 210, A4_H = 297, margin = 12;
+      const printW = A4_W - 2 * margin, printH = A4_H - 2 * margin;
+      const cols = Math.ceil(bbox.width / printW), rows = Math.ceil(bbox.height / printH);
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const cloneSvg = svg.cloneNode(true);
+      cloneSvg.setAttribute("width", bbox.width); cloneSvg.setAttribute("height", bbox.height);
+      cloneSvg.setAttribute("viewBox", `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+
+      let pageNum = 1;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (pageNum > 1) doc.addPage();
+          await doc.svg(cloneSvg, { x: margin - (c * printW), y: margin - (r * printH), width: bbox.width, height: bbox.height });
+          doc.setDrawColor(231, 76, 60); doc.setLineWidth(0.3);
+          doc.rect(margin, margin, printW, printH);
+          doc.setFontSize(10); doc.setTextColor(231, 76, 60);
+          doc.text(`标准打版纸样 A4 拼图 - 行 ${r+1} / 列 ${c+1}`, margin + 5, margin + 5);
+          pageNum++;
+        }
+      }
+      doc.save(`宠物马甲_标准打版图纸_${new Date().toISOString().slice(0,10)}.pdf`);
+    }
+
+    window.onload = renderPattern;
+  </script>
+</body>
+</html>
