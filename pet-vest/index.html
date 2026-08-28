@@ -3,19 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>宠物马甲行业标准打版系统 - 智能单页/多页 A4 动态适配版</title>
-  <!-- 引入 jsPDF 核心库 -->
+  <title>宠物马甲行业标准打版系统 - 1:1 矢量排版 + 手作构图全解</title>
   <script src="https://cdn.bootcdn.net/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background-color: #f5f7fa; color: #333; }
-    .sidebar { width: 420px; background: #ffffff; padding: 18px; border-right: 1px solid #e1e4e8; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-shadow: 2px 0 8px rgba(0,0,0,0.05); }
-    .sidebar h2 { font-size: 15px; color: #1a1a1a; border-bottom: 2px solid #2980b9; padding-bottom: 4px; margin-bottom: 2px; }
+    .sidebar { width: 460px; background: #ffffff; padding: 18px; border-right: 1px solid #e1e4e8; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-shadow: 2px 0 8px rgba(0,0,0,0.05); }
+    .sidebar h2 { font-size: 14px; color: #1a1a1a; border-bottom: 2px solid #2980b9; padding-bottom: 4px; margin-top: 4px; }
     .form-group { display: flex; flex-direction: column; gap: 3px; }
     .form-group label { font-size: 12px; font-weight: 600; color: #444; }
-    .form-group input { padding: 7px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; outline: none; }
-    .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-    button { padding: 11px; border: none; border-radius: 6px; background-color: #2980b9; color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .form-group input { padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; outline: none; }
+    .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+    button { padding: 10px; border: none; border-radius: 6px; background-color: #2980b9; color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
     button:hover { background-color: #1f618d; }
     button.secondary { background-color: #e67e22; }
     button.secondary:hover { background-color: #d35400; }
@@ -24,8 +23,11 @@
     .canvas-container { flex: 1; background: white; border-radius: 8px; border: 1px solid #e1e4e8; overflow: auto; position: relative; display: flex; justify-content: center; align-items: center; }
     svg { background-image: radial-gradient(#d0d0d0 1px, transparent 1px); background-size: 20px 20px; }
     
-    .data-card { background: #f8f9fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 8px; font-size: 11px; line-height: 1.6; }
+    .data-card { background: #f8f9fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 8px; font-size: 11px; line-height: 1.5; max-height: 200px; overflow-y: auto; }
     .data-card b { color: #2c3e50; }
+    .step-guide { background: #fffdf9; border: 1px solid #f39c12; border-radius: 6px; padding: 8px; font-size: 11px; line-height: 1.6; max-height: 240px; overflow-y: auto; }
+    .step-guide h3 { font-size: 12px; color: #d35400; margin-bottom: 4px; }
+    .step-guide ol { padding-left: 15px; }
     .legend-box { display: flex; flex-wrap: wrap; gap: 6px; font-size: 11px; background: #f8f9fa; padding: 6px; border-radius: 6px; border: 1px solid #ddd; }
     .legend-item { display: flex; align-items: center; gap: 4px; }
     .legend-color { width: 10px; height: 10px; border-radius: 2px; }
@@ -51,26 +53,29 @@
       <input type="number" id="ease" value="4" step="0.5" oninput="renderPattern()">
     </div>
 
-    <h2>2. 智能排版看板</h2>
+    <h2>2. 行业标准公式与动态构图看板</h2>
     <div class="data-card" id="dataBoard"></div>
 
-    <h2>3. 缝合对照与图例</h2>
+    <h2>3. 跟着手画教学（手作构图全解步骤）</h2>
+    <div class="step-guide" id="stepGuide"></div>
+
+    <h2>4. 颜色图例说明</h2>
     <div class="legend-box">
-      <div class="legend-item"><div class="legend-color" style="background:#e74c3c;"></div><span>中心线 (红)</span></div>
-      <div class="legend-item"><div class="legend-color" style="background:#3498db;"></div><span>领口 (蓝) [A↔A]</span></div>
-      <div class="legend-item"><div class="legend-color" style="background:#9b59b6;"></div><span>袖窿 (紫) [B↔B]</span></div>
-      <div class="legend-item"><div class="legend-color" style="background:#27ae60;"></div><span>侧缝/底边 (绿) [C/D]</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#e74c3c;"></div><span>中心/中线</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#3498db;"></div><span>领口弧线</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#9b59b6;"></div><span>肩斜与袖窿</span></div>
+      <div class="legend-item"><div class="legend-color" style="background:#27ae60;"></div><span>侧缝与底边</span></div>
     </div>
 
     <div class="btn-group">
-      <button onclick="renderPattern()">手动刷新图纸</button>
-      <button class="secondary" onclick="exportSmartA4PDF()">下载动态 A4 匹配 PDF</button>
+      <button onclick="renderPattern()">手动刷新系统</button>
+      <button class="secondary" onclick="exportSmartA4PDF()">下载智能 A4 PDF (含构图步骤)</button>
     </div>
   </div>
 
   <div class="main-content">
     <div class="canvas-header">
-      <h3>宠物马甲行业标准打版图纸（智能单页/多页自适应）</h3>
+      <h3>宠物马甲标准矢量图解系统（1:1 构图全过程展示）</h3>
       <span id="pageModeTip" style="font-size: 12px; color: #2980b9; font-weight: bold;">计算中...</span>
     </div>
     <div class="canvas-container">
@@ -90,29 +95,45 @@
       const C_total = C + Ease; 
       const W_back = (C_total / 2) * 0.6;
       const W_front = (C_total / 2) * 0.4;
+      const neckW = N / 5;
+      const neckD_back = 2.0;
+      const neckD_front = (N / 5) + 1.5;
+      const armDepth = (C / 6) + 3.0;
       const L_front = L * 0.65;
+      const sideSeamLen = L_front - armDepth;
 
-      // A4 可打印物理尺寸换算成厘米 (210x297mm，留 10mm 边距 => 19cm x 27.7cm)
+      // 1. 渲染公式与看板数据
+      document.getElementById('dataBoard').innerHTML = `
+        • <b>总胸围 (C_total)</b> = 净胸围 ${C} + 放松量 ${Ease} = <b>${C_total.toFixed(1)} cm</b><br>
+        • <b>后背片宽 (W_back)</b> = (C_total / 2) × 60% = <b>${W_back.toFixed(1)} cm</b><br>
+        • <b>腹前片宽 (W_front)</b> = (C_total / 2) × 40% = <b>${W_front.toFixed(1)} cm</b><br>
+        • <b>领宽 (neckW)</b> = 颈围 N / 5 = <b>${neckW.toFixed(1)} cm</b><br>
+        • <b>袖窿深 (armDepth)</b> = (胸围 C / 6) + 3.0 = <b>${armDepth.toFixed(1)} cm</b><br>
+        • <b>侧缝长 (sideSeam)</b> = 前衣长 - 袖窿深 = <b>${sideSeamLen.toFixed(1)} cm</b>
+      `;
+
+      // 2. 渲染手作教学指南
+      document.getElementById('stepGuide').innerHTML = `
+        <h3>🧵 手工画图步骤指南（新手跟随版）：</h3>
+        <ol>
+          <li><b>画基准十字线</b>：在纸上画一条垂直线代表后中线（长 ${L.toFixed(1)}cm），顶部设为起点 P1。</li>
+          <li><b>定领口点 (P2)</b>：自 P1 沿领宽方向向右量取 <b>${neckW.toFixed(1)}cm</b>，向下量取后领深 <b>${neckD_back}cm</b>，画弧线连接。</li>
+          <li><b>定肩与袖窿 (P3)</b>：自领口向右延伸 <b>2.5cm</b> 肩宽，向下作垂线至袖窿深 <b>${armDepth.toFixed(1)}cm</b> 处定点 P3。</li>
+          <li><b>画侧缝与底边</b>：自 P3 向下画垂直侧缝线长 <b>${sideSeamLen.toFixed(1)}cm</b>，最后用圆顺弧线连接至底边（后背宽 <b>${W_back.toFixed(1)}cm</b>）。</li>
+          <li><b>前片裁剪微调</b>：前腹片前领深加深至 <b>${neckD_front.toFixed(1)}cm</b>，前身长调整为 <b>${L_front.toFixed(1)}cm</b>。</li>
+        </ol>
+      `;
+
       const printableW_cm = 19.0;
       const printableH_cm = 27.7;
-
-      const totalWidthCm = W_back + W_front + 12;
+      const totalWidthCm = W_back + W_front + 14;
       const totalHeightCm = Math.max(L, L_front) + 6;
 
       const cols = Math.ceil(totalWidthCm / printableW_cm);
       const rows = Math.ceil(totalHeightCm / printableH_cm);
       const totalPages = cols * rows;
 
-      let modeText = totalPages === 1 ? "✨ 当前尺寸完美适配：【单张 A4 纸】" : `🧩 当前尺寸较大：将自动生成【 ${totalPages} 张 A4 纸】拼图`;
-      document.getElementById('pageModeTip').textContent = modeText;
-
-      document.getElementById('dataBoard').innerHTML = `
-        • 总体图纸尺寸：<b>${totalWidthCm.toFixed(1)}cm × ${totalHeightCm.toFixed(1)}cm</b><br>
-        • A4 可打区域(单页)：<b>${printableW_cm}cm × ${printableH_cm}cm</b><br>
-        • 预计生成页数：<b style="color:#e67e22; font-size:12px;">${totalPages} 页 A4</b><br>
-        • 后背片宽×高：${W_back.toFixed(1)}cm × ${L.toFixed(1)}cm<br>
-        • 腹前片宽×高：${W_front.toFixed(1)}cm × ${L_front.toFixed(1)}cm
-      `;
+      document.getElementById('pageModeTip').textContent = totalPages === 1 ? "✨ 单张 A4 完美呈现" : `🧩 智能拼图：共需 ${totalPages} 张 A4 纸`;
 
       const svg = document.getElementById('patternCanvas');
       svg.innerHTML = '';
@@ -125,7 +146,7 @@
       backGroup.setAttribute("transform", `translate(${3 * PPCM}, ${3 * PPCM})`);
       
       const frontGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      frontGroup.setAttribute("transform", `translate(${ (W_back + 7) * PPCM }, ${3 * PPCM})`);
+      frontGroup.setAttribute("transform", `translate(${ (W_back + 8) * PPCM }, ${3 * PPCM})`);
 
       svg.appendChild(backGroup);
       svg.appendChild(frontGroup);
@@ -154,25 +175,27 @@
       const pL = L * PPCM;
       const pSideBottomY = sideBottomY * PPCM;
 
-      addText(group, 0, -35, "【1. 后背片】(对折剪裁 1 片)", "#2c3e50", 14, 0);
+      addText(group, 0, -40, "【1. 后背片】(对折剪裁 1 片)", "#2c3e50", 13, 0);
+      addText(group, 0, -25, `公式: 背宽=${W.toFixed(1)}cm | 领宽=${neckW.toFixed(1)}cm`, "#7f8c8d", 9, 0);
+
       addLine(group, 0, 0, 0, pL, "#e74c3c", 2);
-      addText(group, -75, pL / 2, `后中线: ${L.toFixed(1)}cm`, "#e74c3c", 10, -90);
-      addDot(group, 0, 0, "P1", "#e74c3c");
+      addText(group, -75, pL / 2, `后中线 L=${L.toFixed(1)}cm`, "#e74c3c", 10, -90);
+      addDot(group, 0, 0, "P1 (起点)", "#e74c3c");
 
       addCurve(group, `M 0 0 Q ${pNeckW * 0.5} 0 ${pNeckW} ${-pNeckD}`, "#3498db", 2);
-      addText(group, pNeckW / 2, -pNeckD - 12, `领宽: ${neckW.toFixed(1)}cm [A]`, "#3498db", 10, 0);
-      addDot(group, pNeckW, -pNeckD, "P2 [A]", "#3498db");
+      addText(group, pNeckW / 2, -pNeckD - 12, `领宽 [A] = ${neckW.toFixed(1)}cm`, "#3498db", 9, 0);
+      addDot(group, pNeckW, -pNeckD, "P2 (领口)", "#3498db");
 
       addLine(group, pNeckW, -pNeckD, pShoulderX, pShoulderY, "#9b59b6", 2);
       addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 30} ${pArmDepth * 0.5}, ${pW * 0.7} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2);
-      addText(group, pW + 10, pArmDepth * 0.6, `袖窿深: ${armDepth.toFixed(1)}cm [B]`, "#9b59b6", 10, 0);
-      addDot(group, pW, pArmDepth, "P3 [B]", "#9b59b6");
+      addText(group, pW + 10, pArmDepth * 0.6, `袖窿深 [B] = ${armDepth.toFixed(1)}cm`, "#9b59b6", 9, 0);
+      addDot(group, pW, pArmDepth, "P3 (腋下)", "#9b59b6");
 
       addLine(group, pW, pArmDepth, pW, pSideBottomY, "#27ae60", 2);
-      addText(group, pW + 10, (pArmDepth + pSideBottomY) / 2, `侧缝长: ${sideSeamLen.toFixed(1)}cm [C]`, "#27ae60", 10, 90);
+      addText(group, pW + 10, (pArmDepth + pSideBottomY) / 2, `侧缝 [C] = ${sideSeamLen.toFixed(1)}cm`, "#27ae60", 9, 90);
 
       addCurve(group, `M ${pW} ${pSideBottomY} Q ${pW * 0.5} ${pL + 15} 0 ${pL}`, "#27ae60", 2);
-      addText(group, pW / 2, pL + 25, `后胸宽: ${W.toFixed(1)}cm [D]`, "#27ae60", 10, 0);
+      addText(group, pW / 2, pL + 22, `后背宽 [D] = ${W.toFixed(1)}cm`, "#27ae60", 9, 0);
     }
 
     function drawStandardFront(group, N, C, L, C_total) {
@@ -193,24 +216,26 @@
       const pShoulderY = (-neckD * 0.3 + shoulderSlope) * PPCM;
       const pL_front = L_front * PPCM;
 
-      addText(group, 0, -35, "【2. 腹部前片】(左右各剪 1 片)", "#2c3e50", 14, 0);
+      addText(group, 0, -40, "【2. 腹部前片】(左右各剪 1 片)", "#2c3e50", 13, 0);
+      addText(group, 0, -25, `公式: 前宽=${W.toFixed(1)}cm | 前领深=${neckD.toFixed(1)}cm`, "#7f8c8d", 9, 0);
+
       addLine(group, 0, 0, 0, pL_front, "#e74c3c", 2);
-      addText(group, -75, pL_front / 2, `前身长: ${L_front.toFixed(1)}cm`, "#e74c3c", 10, -90);
-      addDot(group, 0, 0, "F1", "#e74c3c");
+      addText(group, -75, pL_front / 2, `前身长 = ${L_front.toFixed(1)}cm`, "#e74c3c", 10, -90);
+      addDot(group, 0, 0, "F1 (前起点)", "#e74c3c");
 
       addCurve(group, `M 0 0 Q ${pNeckW * 0.3} ${pNeckD} ${pNeckW} ${-pNeckD * 0.3}`, "#3498db", 2);
-      addText(group, pNeckW + 10, -pNeckD * 0.3, `前领深: ${neckD.toFixed(1)}cm [A]`, "#3498db", 10, 0);
-      addDot(group, pNeckW, -pNeckD * 0.3, "F2 [A]", "#3498db");
+      addText(group, pNeckW + 10, -pNeckD * 0.3, `前领深 [A] = ${neckD.toFixed(1)}cm`, "#3498db", 9, 0);
+      addDot(group, pNeckW, -pNeckD * 0.3, "F2 (前领口)", "#3498db");
 
       addLine(group, pNeckW, -pNeckD * 0.3, pShoulderX, pShoulderY, "#9b59b6", 2);
       addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 30} ${pArmDepth * 0.6}, ${pW * 0.8} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2);
-      addDot(group, pW, pArmDepth, "F3 [B]", "#9b59b6");
+      addDot(group, pW, pArmDepth, "F3 (前腋下)", "#9b59b6");
 
       addLine(group, pW, pArmDepth, pW, pL_front, "#27ae60", 2);
-      addText(group, pW + 10, (pArmDepth + pL_front) / 2, `侧缝长: ${sideSeamLen.toFixed(1)}cm [C]`, "#27ae60", 10, 90);
+      addText(group, pW + 10, (pArmDepth + pL_front) / 2, `侧缝 [C] = ${sideSeamLen.toFixed(1)}cm`, "#27ae60", 9, 90);
 
       addLine(group, pW, pL_front, 0, pL_front, "#27ae60", 2);
-      addText(group, pW / 2, pL_front + 25, `前胸宽: ${W.toFixed(1)}cm [D]`, "#27ae60", 10, 0);
+      addText(group, pW / 2, pL_front + 22, `前胸宽 [D] = ${W.toFixed(1)}cm`, "#27ae60", 9, 0);
     }
 
     function addLine(g, x1, y1, x2, y2, color, width) {
@@ -250,17 +275,13 @@
       g.appendChild(t);
     }
 
-    // 核心智能切片多页导出
     function exportSmartA4PDF() {
       const { jsPDF } = window.jspdf;
       const svgElement = document.getElementById('patternCanvas');
       
       const marginMm = 10;
-      const a4W_mm = 210;
-      const a4H_mm = 297;
-      const printableW_mm = a4W_mm - (marginMm * 2); // 190mm
-      const printableH_mm = a4H_mm - (marginMm * 2); // 277mm
-
+      const printableW_mm = 190;
+      const printableH_mm = 277;
       const printableW_px = printableW_mm * 3.7795;
       const printableH_px = printableH_mm * 3.7795;
 
@@ -273,7 +294,7 @@
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      canvas.width = totalW_px * 2;   // 2倍超高清采样
+      canvas.width = totalW_px * 2;
       canvas.height = totalH_px * 2;
       ctx.scale(2, 2);
 
@@ -315,27 +336,21 @@
             );
 
             const tileData = tileCanvas.toDataURL('image/png');
-
-            // 贴入 A4 指定区域
             doc.addImage(tileData, 'PNG', marginMm, marginMm, printableW_mm, printableH_mm);
 
-            // 绘制页边框及页码指引
             doc.setDrawColor(41, 128, 185);
             doc.setLineWidth(0.2);
             doc.rect(marginMm, marginMm, printableW_mm, printableH_mm);
 
             doc.setFontSize(9);
             doc.setTextColor(41, 128, 185);
-            let pageDesc = totalPages === 1 
-              ? `[宠物马甲标准图纸] 完整单页输出 (1:1)` 
-              : `[宠物马甲智能拼图] 第 ${r + 1} 行, 第 ${c + 1} 列 (总计 ${totalPages} 页)`;
-            doc.text(pageDesc, marginMm + 2, marginMm + 5);
+            doc.text(`[手作构图教程版] 第 ${r + 1} 行, 第 ${c + 1} 列 (共 ${totalPages} 页)`, marginMm + 2, marginMm + 5);
             
             pageCount++;
           }
         }
 
-        doc.save(`宠物马甲图纸_共${totalPages}页_${new Date().toISOString().slice(0,10)}.pdf`);
+        doc.save(`宠物马甲构图与手作教程版_${new Date().toISOString().slice(0,10)}.pdf`);
       };
       image.src = blobURL;
     }
