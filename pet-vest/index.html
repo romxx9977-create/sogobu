@@ -3,24 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>宠物马甲行业标准打版系统 - 稳定下载版</title>
+  <title>宠物马甲行业标准打版系统 - 1:1 A4 矢量拼图版</title>
+  <!-- 引入 jsPDF 核心库 -->
+  <script src="https://cdn.bootcdn.net/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background-color: #f5f7fa; color: #333; }
-    .sidebar { width: 400px; background: #ffffff; padding: 18px; border-right: 1px solid #e1e4e8; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-shadow: 2px 0 8px rgba(0,0,0,0.05); }
+    .sidebar { width: 420px; background: #ffffff; padding: 18px; border-right: 1px solid #e1e4e8; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-shadow: 2px 0 8px rgba(0,0,0,0.05); }
     .sidebar h2 { font-size: 15px; color: #1a1a1a; border-bottom: 2px solid #2980b9; padding-bottom: 4px; margin-bottom: 2px; }
     .form-group { display: flex; flex-direction: column; gap: 3px; }
     .form-group label { font-size: 12px; font-weight: 600; color: #444; }
     .form-group input { padding: 7px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; outline: none; }
     .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-    button { padding: 10px; border: none; border-radius: 6px; background-color: #2980b9; color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    button { padding: 11px; border: none; border-radius: 6px; background-color: #2980b9; color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
     button:hover { background-color: #1f618d; }
     button.secondary { background-color: #e67e22; }
     button.secondary:hover { background-color: #d35400; }
     .main-content { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 12px; }
-    .canvas-header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .canvas-header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 1px3px rgba(0,0,0,0.1); }
     .canvas-container { flex: 1; background: white; border-radius: 8px; border: 1px solid #e1e4e8; overflow: auto; position: relative; display: flex; justify-content: center; align-items: center; }
-    svg { width: 100%; height: 100%; background-image: radial-gradient(#d0d0d0 1px, transparent 1px); background-size: 20px 20px; }
+    svg { background-image: radial-gradient(#d0d0d0 1px, transparent 1px); background-size: 20px 20px; }
     
     .data-card { background: #f8f9fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 8px; font-size: 11px; line-height: 1.6; }
     .data-card b { color: #2c3e50; }
@@ -49,7 +51,7 @@
       <input type="number" id="ease" value="4" step="0.5" oninput="renderPattern()">
     </div>
 
-    <h2>2. 实时计算数据看板</h2>
+    <h2>2. 1:1 真实物理比例说明</h2>
     <div class="data-card" id="dataBoard"></div>
 
     <h2>3. 缝合对照与图例</h2>
@@ -62,22 +64,23 @@
 
     <div class="btn-group">
       <button onclick="renderPattern()">手动刷新图纸</button>
-      <button class="secondary" onclick="exportImage()">一键下载高清图纸 (PNG)</button>
+      <button class="secondary" onclick="exportA4TiledVectorPDF()">导出 1:1 A4 多页拼图 PDF</button>
     </div>
   </div>
 
   <div class="main-content">
     <div class="canvas-header">
-      <h3>宠物马甲行业标准打版图纸（免插件秒存版）</h3>
-      <span style="font-size: 12px; color: #666;">零拦截 / 完美兼容所有浏览器</span>
+      <h3>宠物马甲行业标准打版图纸（1:1 真实比例尺）</h3>
+      <span style="font-size: 12px; color: #666;">网格 1格 = 1厘米 (1:1 真实尺寸)</span>
     </div>
     <div class="canvas-container">
-      <svg id="patternCanvas" viewBox="-100 -120 1000 750"></svg>
+      <svg id="patternCanvas"></svg>
     </div>
   </div>
 
   <script>
-    const SCALE = 12;
+    // 1:1 核心比例：定义 1 厘米 = 37.795 像素 (CSS 1mm 约等于 3.7795 px，乘以 10 即 1cm = 37.795px)
+    const PPCM = 37.795; 
 
     function renderPattern() {
       const N = parseFloat(document.getElementById('neck').value) || 0;
@@ -89,39 +92,40 @@
       const W_back = (C_total / 2) * 0.6;
       const W_front = (C_total / 2) * 0.4;
       const neckW = N / 5;
-      const neckD_back = 2.0;
-      const neckD_front = (N / 5) + 1.5;
       const armDepth = (C / 6) + 3.0;
       const L_front = L * 0.65;
       const sideSeamLen = L_front - armDepth;
 
       document.getElementById('dataBoard').innerHTML = `
+        • 比例模式：<b>严格 1:1 真实物理尺寸 (1cm = 37.8px)</b><br>
         • 总胸围 (C+Ease)：<b>${C_total.toFixed(1)} cm</b><br>
-        • 后胸宽 / 前胸宽：<b>${W_back.toFixed(1)} cm</b> / <b>${W_front.toFixed(1)} cm</b><br>
-        • 袖窿深 (腋下高)：<b>${armDepth.toFixed(1)} cm</b><br>
-        • 前后侧缝长 (C↔C)：<b>${sideSeamLen.toFixed(1)} cm (严格等长)</b><br>
-        • 后衣长 / 前衣长：<b>${L.toFixed(1)} cm</b> / <b>${L_front.toFixed(1)} cm</b>
+        • 后背片宽×高：<b>${W_back.toFixed(1)}cm × ${L.toFixed(1)}cm</b><br>
+        • 腹前片宽×高：<b>${W_front.toFixed(1)}cm × ${L_front.toFixed(1)}cm</b><br>
+        • 提示：A4纸宽21cm，图纸将自动切片为多页A4。
       `;
 
       const svg = document.getElementById('patternCanvas');
       svg.innerHTML = '';
 
+      // 根据真实厘米计算 SVG 画布总大小
+      const totalWidthCm = W_back + W_front + 15; // 加上左右间距
+      const totalHeightCm = Math.max(L, L_front) + 6;
+      
+      svg.setAttribute("width", totalWidthCm * PPCM);
+      svg.setAttribute("height", totalHeightCm * PPCM);
+      svg.setAttribute("viewBox", `0 0 ${totalWidthCm * PPCM} ${totalHeightCm * PPCM}`);
+
       const backGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      backGroup.setAttribute("transform", "translate(80, 80)");
+      backGroup.setAttribute("transform", `translate(${3 * PPCM}, ${3 * PPCM})`);
       
       const frontGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      frontGroup.setAttribute("transform", `translate(${ W_back * SCALE + 240 }, 80)`);
+      frontGroup.setAttribute("transform", `translate(${ (W_back + 8) * PPCM }, ${3 * PPCM})`);
 
       svg.appendChild(backGroup);
       svg.appendChild(frontGroup);
 
       drawStandardBack(backGroup, N, C, L, C_total);
       drawStandardFront(frontGroup, N, C, L, C_total);
-
-      setTimeout(() => {
-         const bbox = svg.getBBox();
-         svg.setAttribute("viewBox", `${bbox.x - 50} ${bbox.y - 50} ${bbox.width + 100} ${bbox.height + 100}`);
-      }, 50);
     }
 
     function drawStandardBack(group, N, C, L, C_total) {
@@ -135,34 +139,34 @@
       const sideSeamLen = L_front - armDepth;  
       const sideBottomY = armDepth + sideSeamLen;
 
-      const pW = W * SCALE;
-      const pNeckW = neckW * SCALE;
-      const pNeckD = neckD * SCALE;
-      const pArmDepth = armDepth * SCALE;
-      const pShoulderX = (neckW + shoulderLen) * SCALE;
-      const pShoulderY = (-neckD + shoulderSlope) * SCALE;
-      const pL = L * SCALE;
-      const pSideBottomY = sideBottomY * SCALE;
+      const pW = W * PPCM;
+      const pNeckW = neckW * PPCM;
+      const pNeckD = neckD * PPCM;
+      const pArmDepth = armDepth * PPCM;
+      const pShoulderX = (neckW + shoulderLen) * PPCM;
+      const pShoulderY = (-neckD + shoulderSlope) * PPCM;
+      const pL = L * PPCM;
+      const pSideBottomY = sideBottomY * PPCM;
 
-      addText(group, 0, -45, "【1. 后背片】(对折剪裁 1 片)", "#2c3e50", 14, 0);
-      addLine(group, 0, 0, 0, pL, "#e74c3c", 2.5);
-      addText(group, -85, pL / 2, `后中线: ${L.toFixed(1)}cm`, "#e74c3c", 11, -90);
+      addText(group, 0, -35, "【1. 后背片】(对折剪裁 1 片 - 1:1)", "#2c3e50", 14, 0);
+      addLine(group, 0, 0, 0, pL, "#e74c3c", 2);
+      addText(group, -75, pL / 2, `后中线: ${L.toFixed(1)}cm`, "#e74c3c", 10, -90);
       addDot(group, 0, 0, "P1", "#e74c3c");
 
-      addCurve(group, `M 0 0 Q ${pNeckW * 0.5} 0 ${pNeckW} ${-pNeckD}`, "#3498db", 2.5);
-      addText(group, pNeckW / 2, -pNeckD - 15, `领宽: ${neckW.toFixed(1)}cm [A]`, "#3498db", 11, 0);
+      addCurve(group, `M 0 0 Q ${pNeckW * 0.5} 0 ${pNeckW} ${-pNeckD}`, "#3498db", 2);
+      addText(group, pNeckW / 2, -pNeckD - 12, `领宽: ${neckW.toFixed(1)}cm [A]`, "#3498db", 10, 0);
       addDot(group, pNeckW, -pNeckD, "P2 [A]", "#3498db");
 
-      addLine(group, pNeckW, -pNeckD, pShoulderX, pShoulderY, "#9b59b6", 2.5);
-      addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 10} ${pArmDepth * 0.5}, ${pW * 0.7} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2.5);
-      addText(group, pW + 15, pArmDepth * 0.6, `袖窿深: ${armDepth.toFixed(1)}cm [B]`, "#9b59b6", 11, 0);
+      addLine(group, pNeckW, -pNeckD, pShoulderX, pShoulderY, "#9b59b6", 2);
+      addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 30} ${pArmDepth * 0.5}, ${pW * 0.7} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2);
+      addText(group, pW + 10, pArmDepth * 0.6, `袖窿深: ${armDepth.toFixed(1)}cm [B]`, "#9b59b6", 10, 0);
       addDot(group, pW, pArmDepth, "P3 [B]", "#9b59b6");
 
-      addLine(group, pW, pArmDepth, pW, pSideBottomY, "#27ae60", 2.5);
-      addText(group, pW + 15, (pArmDepth + pSideBottomY) / 2, `侧缝长: ${sideSeamLen.toFixed(1)}cm [C]`, "#27ae60", 11, 90);
+      addLine(group, pW, pArmDepth, pW, pSideBottomY, "#27ae60", 2);
+      addText(group, pW + 10, (pArmDepth + pSideBottomY) / 2, `侧缝长: ${sideSeamLen.toFixed(1)}cm [C]`, "#27ae60", 10, 90);
 
-      addCurve(group, `M ${pW} ${pSideBottomY} Q ${pW * 0.5} ${pL + 15} 0 ${pL}`, "#27ae60", 2.5);
-      addText(group, pW / 2, pL + 25, `后胸宽: ${W.toFixed(1)}cm [D]`, "#27ae60", 11, 0);
+      addCurve(group, `M ${pW} ${pSideBottomY} Q ${pW * 0.5} ${pL + 15} 0 ${pL}`, "#27ae60", 2);
+      addText(group, pW / 2, pL + 25, `后胸宽: ${W.toFixed(1)}cm [D]`, "#27ae60", 10, 0);
     }
 
     function drawStandardFront(group, N, C, L, C_total) {
@@ -175,32 +179,32 @@
       const L_front = L * 0.65;                
       const sideSeamLen = L_front - armDepth;  
 
-      const pW = W * SCALE;
-      const pNeckW = neckW * SCALE;
-      const pNeckD = neckD * SCALE;
-      const pArmDepth = armDepth * SCALE;
-      const pShoulderX = (neckW + shoulderLen) * SCALE;
-      const pShoulderY = (-neckD * 0.3 + shoulderSlope) * SCALE;
-      const pL_front = L_front * SCALE;
+      const pW = W * PPCM;
+      const pNeckW = neckW * PPCM;
+      const pNeckD = neckD * PPCM;
+      const pArmDepth = armDepth * PPCM;
+      const pShoulderX = (neckW + shoulderLen) * PPCM;
+      const pShoulderY = (-neckD * 0.3 + shoulderSlope) * PPCM;
+      const pL_front = L_front * PPCM;
 
-      addText(group, 0, -45, "【2. 腹部前片】(左右各剪 1 片)", "#2c3e50", 14, 0);
-      addLine(group, 0, 0, 0, pL_front, "#e74c3c", 2.5);
-      addText(group, -85, pL_front / 2, `前身长: ${L_front.toFixed(1)}cm`, "#e74c3c", 11, -90);
+      addText(group, 0, -35, "【2. 腹部前片】(左右各剪 1 片 - 1:1)", "#2c3e50", 14, 0);
+      addLine(group, 0, 0, 0, pL_front, "#e74c3c", 2);
+      addText(group, -75, pL_front / 2, `前身长: ${L_front.toFixed(1)}cm`, "#e74c3c", 10, -90);
       addDot(group, 0, 0, "F1", "#e74c3c");
 
-      addCurve(group, `M 0 0 Q ${pNeckW * 0.3} ${pNeckD} ${pNeckW} ${-pNeckD * 0.3}`, "#3498db", 2.5);
-      addText(group, pNeckW + 12, -pNeckD * 0.3, `前领深: ${neckD.toFixed(1)}cm [A]`, "#3498db", 11, 0);
+      addCurve(group, `M 0 0 Q ${pNeckW * 0.3} ${pNeckD} ${pNeckW} ${-pNeckD * 0.3}`, "#3498db", 2);
+      addText(group, pNeckW + 10, -pNeckD * 0.3, `前领深: ${neckD.toFixed(1)}cm [A]`, "#3498db", 10, 0);
       addDot(group, pNeckW, -pNeckD * 0.3, "F2 [A]", "#3498db");
 
-      addLine(group, pNeckW, -pNeckD * 0.3, pShoulderX, pShoulderY, "#9b59b6", 2.5);
-      addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 10} ${pArmDepth * 0.6}, ${pW * 0.8} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2.5);
+      addLine(group, pNeckW, -pNeckD * 0.3, pShoulderX, pShoulderY, "#9b59b6", 2);
+      addCurve(group, `M ${pShoulderX} ${pShoulderY} C ${pShoulderX + 30} ${pArmDepth * 0.6}, ${pW * 0.8} ${pArmDepth}, ${pW} ${pArmDepth}`, "#9b59b6", 2);
       addDot(group, pW, pArmDepth, "F3 [B]", "#9b59b6");
 
-      addLine(group, pW, pArmDepth, pW, pL_front, "#27ae60", 2.5);
-      addText(group, pW + 15, (pArmDepth + pL_front) / 2, `侧缝长: ${sideSeamLen.toFixed(1)}cm [C]`, "#27ae60", 11, 90);
+      addLine(group, pW, pArmDepth, pW, pL_front, "#27ae60", 2);
+      addText(group, pW + 10, (pArmDepth + pL_front) / 2, `侧缝长: ${sideSeamLen.toFixed(1)}cm [C]`, "#27ae60", 10, 90);
 
-      addLine(group, pW, pL_front, 0, pL_front, "#27ae60", 2.5);
-      addText(group, pW / 2, pL_front + 25, `前胸宽: ${W.toFixed(1)}cm [D]`, "#27ae60", 11, 0);
+      addLine(group, pW, pL_front, 0, pL_front, "#27ae60", 2);
+      addText(group, pW / 2, pL_front + 25, `前胸宽: ${W.toFixed(1)}cm [D]`, "#27ae60", 10, 0);
     }
 
     function addLine(g, x1, y1, x2, y2, color, width) {
@@ -220,13 +224,13 @@
 
     function addDot(g, cx, cy, label, color) {
       const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", "4");
+      c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", "3.5");
       c.setAttribute("style", `fill: ${color}; stroke: #fff; stroke-width: 1.5;`);
       g.appendChild(c);
       
       const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      t.setAttribute("x", cx + 6); t.setAttribute("y", cy + 3);
-      t.setAttribute("style", `font-size: 10px; fill: #222; font-weight: bold;`);
+      t.setAttribute("x", cx + 5); t.setAttribute("y", cy + 3);
+      t.setAttribute("style", `font-size: 9px; fill: #222; font-weight: bold;`);
       t.textContent = label;
       g.appendChild(t);
     }
@@ -240,37 +244,96 @@
       g.appendChild(t);
     }
 
-    // 采用原生 Base64 编码下载，绝对不会出现没反应的情况
-    function exportImage() {
+    // 核心：1:1 真实尺寸切片多页 A4 PDF 导出
+    function exportA4TiledVectorPDF() {
+      const { jsPDF } = window.jspdf;
       const svgElement = document.getElementById('patternCanvas');
-      const bbox = svgElement.getBBox();
-      const svgString = new XMLSerializer().serializeToString(svgElement);
       
+      // A4 纸张尺寸（毫米与点数的转换）
+      // A4 宽 210mm, 高 297mm。去掉每边 10mm 边距，实际打印区域为 190mm × 277mm
+      const marginMm = 10;
+      const a4W_mm = 210;
+      const a4H_mm = 297;
+      const printableW_mm = a4W_mm - (marginMm * 2); // 190mm
+      const printableH_mm = a4H_mm - (marginMm * 2); // 277mm
+
+      // 将毫米转换为 SVG 像素 (1mm = 3.7795px)
+      const printableW_px = printableW_mm * 3.7795;
+      const printableH_px = printableH_mm * 3.7795;
+
+      const totalW_px = parseFloat(svgElement.getAttribute("width"));
+      const totalH_px = parseFloat(svgElement.getAttribute("height"));
+
+      // 计算需要切成几行几列 A4 纸
+      const cols = Math.ceil(totalW_px / printableW_px);
+      const rows = Math.ceil(totalH_px / printableH_px);
+
+      // 创建高清晰度临时 Canvas 用于切片渲染
       const canvas = document.createElement('canvas');
-      canvas.width = (bbox.width + 100) * 2; // 2倍超高清
-      canvas.height = (bbox.height + 100) * 2;
       const ctx = canvas.getContext('2d');
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      canvas.width = totalW_px * 2;   // 2倍高清采样
+      canvas.height = totalH_px * 2;
       ctx.scale(2, 2);
 
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, totalW_px, totalH_px);
+
+      const svgString = new XMLSerializer().serializeToString(svgElement);
       const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
       const URL = window.URL || window.webkitURL || window;
       const blobURL = URL.createObjectURL(blob);
 
       const image = new Image();
       image.onload = function() {
-        ctx.drawImage(image, 50 - bbox.x, 50 - bbox.y);
+        ctx.drawImage(image, 0, 0);
         URL.revokeObjectURL(blobURL);
 
-        const dataURL = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `宠物马甲标准图纸_${new Date().toISOString().slice(0,10)}.png`;
-        link.href = dataURL;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // 初始化 jsPDF，使用毫米单位（mm）
+        const doc = new jsPDF('p', 'mm', 'a4');
+        let pageCount = 1;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (pageCount > 1) doc.addPage();
+
+            // 当前切片在大图中的像素坐标
+            const srcX_px = c * printableW_px;
+            const srcY_px = r * printableH_px;
+            
+            // 裁剪该区域并画到小 canvas
+            const tileCanvas = document.createElement('canvas');
+            tileCanvas.width = printableW_px * 2;
+            tileCanvas.height = printableH_px * 2;
+            const tileCtx = tileCanvas.getContext('2d');
+            
+            tileCtx.fillStyle = '#ffffff';
+            tileCtx.fillRect(0, 0, tileCanvas.width, tileCanvas.height);
+            
+            tileCtx.drawImage(
+              canvas, 
+              srcX_px * 2, srcY_px * 2, printableW_px * 2, printableH_px * 2,
+              0, 0, printableW_px * 2, printableH_px * 2
+            );
+
+            const tileData = tileCanvas.toDataURL('image/png');
+
+            // 1:1 贴入 A4 纸的指定边距位置
+            doc.addImage(tileData, 'PNG', marginMm, marginMm, printableW_mm, printableH_mm);
+
+            // 绘制拼图网格指引边框与页码（方便打印后裁剪粘贴）
+            doc.setDrawColor(41, 128, 185);
+            doc.setLineWidth(0.2);
+            doc.rect(marginMm, marginMm, printableW_mm, printableH_mm);
+
+            doc.setFontSize(9);
+            doc.setTextColor(41, 128, 185);
+            doc.text(`[1:1 宠物打版系统] A4 拼图页码: 第 ${r + 1} 行, 第 ${c + 1} 列 (总共 ${rows}行${cols}列)`, marginMm + 2, marginMm + 5);
+            
+            pageCount++;
+          }
+        }
+
+        doc.save(`宠物马甲_1对1真实比例图纸_${new Date().toISOString().slice(0,10)}.pdf`);
       };
       image.src = blobURL;
     }
