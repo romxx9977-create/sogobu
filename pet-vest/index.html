@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>宠物马甲行业标准打版系统 - 1:1 矢量排版 + 手作构图全解</title>
+  <title>宠物马甲行业标准打版系统 - 1:1 矢量排版 + 手作构图全解 (防溢出完美版)</title>
   <script src="https://cdn.bootcdn.net/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background-color: #f5f7fa; color: #333; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background-color: #f5f7fa; color: #333; overflow: hidden; }
     .sidebar { width: 460px; background: #ffffff; padding: 18px; border-right: 1px solid #e1e4e8; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-shadow: 2px 0 8px rgba(0,0,0,0.05); }
     .sidebar h2 { font-size: 14px; color: #1a1a1a; border-bottom: 2px solid #2980b9; padding-bottom: 4px; margin-top: 4px; }
     .form-group { display: flex; flex-direction: column; gap: 3px; }
@@ -18,14 +18,14 @@
     button:hover { background-color: #1f618d; }
     button.secondary { background-color: #e67e22; }
     button.secondary:hover { background-color: #d35400; }
-    .main-content { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 12px; }
+    .main-content { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 12px; height: 100vh; overflow: hidden; }
     .canvas-header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .canvas-container { flex: 1; background: white; border-radius: 8px; border: 1px solid #e1e4e8; overflow: auto; position: relative; display: flex; justify-content: center; align-items: center; }
+    .canvas-container { flex: 1; background: white; border-radius: 8px; border: 1px solid #e1e4e8; overflow: auto; position: relative; display: flex; justify-content: center; align-items: center; min-height: 0; }
     svg { background-image: radial-gradient(#d0d0d0 1px, transparent 1px); background-size: 20px 20px; }
     
-    .data-card { background: #f8f9fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 8px; font-size: 11px; line-height: 1.5; max-height: 200px; overflow-y: auto; }
+    .data-card { background: #f8f9fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 8px; font-size: 11px; line-height: 1.5; max-height: 180px; overflow-y: auto; }
     .data-card b { color: #2c3e50; }
-    .step-guide { background: #fffdf9; border: 1px solid #f39c12; border-radius: 6px; padding: 8px; font-size: 11px; line-height: 1.6; max-height: 240px; overflow-y: auto; }
+    .step-guide { background: #fffdf9; border: 1px solid #f39c12; border-radius: 6px; padding: 8px; font-size: 11px; line-height: 1.6; max-height: 220px; overflow-y: auto; }
     .step-guide h3 { font-size: 12px; color: #d35400; margin-bottom: 4px; }
     .step-guide ol { padding-left: 15px; }
     .legend-box { display: flex; flex-wrap: wrap; gap: 6px; font-size: 11px; background: #f8f9fa; padding: 6px; border-radius: 6px; border: 1px solid #ddd; }
@@ -75,7 +75,7 @@
 
   <div class="main-content">
     <div class="canvas-header">
-      <h3>宠物马甲标准矢量图解系统（1:1 构图全过程展示）</h3>
+      <h3>宠物马甲标准矢量图解系统（防溢出完美版）</h3>
       <span id="pageModeTip" style="font-size: 12px; color: #2980b9; font-weight: bold;">计算中...</span>
     </div>
     <div class="canvas-container">
@@ -126,8 +126,14 @@
 
       const printableW_cm = 19.0;
       const printableH_cm = 27.7;
-      const totalWidthCm = W_back + W_front + 14;
-      const totalHeightCm = Math.max(L, L_front) + 6;
+      
+      // 动态增加顶部边距（保留 6cm 顶部空间给领口标题和负坐标，防止上方超出溢出）
+      const topPaddingCm = 6.0;
+      const bottomPaddingCm = 4.0;
+      const leftRightPaddingCm = 4.0;
+
+      const totalWidthCm = W_back + W_front + (leftRightPaddingCm * 2);
+      const totalHeightCm = Math.max(L, L_front) + topPaddingCm + bottomPaddingCm;
 
       const cols = Math.ceil(totalWidthCm / printableW_cm);
       const rows = Math.ceil(totalHeightCm / printableH_cm);
@@ -142,11 +148,12 @@
       svg.setAttribute("height", totalHeightCm * PPCM);
       svg.setAttribute("viewBox", `0 0 ${totalWidthCm * PPCM} ${totalHeightCm * PPCM}`);
 
+      // 调整背片和前片在 SVG 中的内部平移坐标，确保上方有充足的留白 (topPaddingCm)
       const backGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      backGroup.setAttribute("transform", `translate(${3 * PPCM}, ${3 * PPCM})`);
+      backGroup.setAttribute("transform", `translate(${leftRightPaddingCm * PPCM}, ${topPaddingCm * PPCM})`);
       
       const frontGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      frontGroup.setAttribute("transform", `translate(${ (W_back + 8) * PPCM }, ${3 * PPCM})`);
+      frontGroup.setAttribute("transform", `translate(${ (W_back + leftRightPaddingCm + 4) * PPCM }, ${topPaddingCm * PPCM})`);
 
       svg.appendChild(backGroup);
       svg.appendChild(frontGroup);
@@ -175,8 +182,8 @@
       const pL = L * PPCM;
       const pSideBottomY = sideBottomY * PPCM;
 
-      addText(group, 0, -40, "【1. 后背片】(对折剪裁 1 片)", "#2c3e50", 13, 0);
-      addText(group, 0, -25, `公式: 背宽=${W.toFixed(1)}cm | 领宽=${neckW.toFixed(1)}cm`, "#7f8c8d", 9, 0);
+      addText(group, 0, -45, "【1. 后背片】(对折剪裁 1 片)", "#2c3e50", 13, 0);
+      addText(group, 0, -30, `公式: 背宽=${W.toFixed(1)}cm | 领宽=${neckW.toFixed(1)}cm`, "#7f8c8d", 9, 0);
 
       addLine(group, 0, 0, 0, pL, "#e74c3c", 2);
       addText(group, -75, pL / 2, `后中线 L=${L.toFixed(1)}cm`, "#e74c3c", 10, -90);
@@ -216,8 +223,8 @@
       const pShoulderY = (-neckD * 0.3 + shoulderSlope) * PPCM;
       const pL_front = L_front * PPCM;
 
-      addText(group, 0, -40, "【2. 腹部前片】(左右各剪 1 片)", "#2c3e50", 13, 0);
-      addText(group, 0, -25, `公式: 前宽=${W.toFixed(1)}cm | 前领深=${neckD.toFixed(1)}cm`, "#7f8c8d", 9, 0);
+      addText(group, 0, -45, "【2. 腹部前片】(左右各剪 1 片)", "#2c3e50", 13, 0);
+      addText(group, 0, -30, `公式: 前宽=${W.toFixed(1)}cm | 前领深=${neckD.toFixed(1)}cm`, "#7f8c8d", 9, 0);
 
       addLine(group, 0, 0, 0, pL_front, "#e74c3c", 2);
       addText(group, -75, pL_front / 2, `前身长 = ${L_front.toFixed(1)}cm`, "#e74c3c", 10, -90);
@@ -350,7 +357,7 @@
           }
         }
 
-        doc.save(`宠物马甲构图与手作教程版_${new Date().toISOString().slice(0,10)}.pdf`);
+        doc.save(`宠物马甲防溢出构图版_${new Date().toISOString().slice(0,10)}.pdf`);
       };
       image.src = blobURL;
     }
